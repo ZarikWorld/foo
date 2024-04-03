@@ -1,0 +1,20 @@
+﻿wpfIssues
+1.0.7
+
+winexe
+C#
+.cs
+C:\Users\rahimiha\Desktop\Internal Issues\jxIssues\githubfoo\wpfIssue\obj\Debug\net7.0-windows\
+wpfIssues
+none
+false
+TRACE;DEBUG;NET;NET7_0;NETCOREAPP
+C:\Users\rahimiha\Desktop\Internal Issues\jxIssues\githubfoo\wpfIssue\App.xaml
+61678248690
+11653291180
+45930602652
+240-340250821
+MainWindow.xaml;Source\View\BacklogView.xaml;Source\View\GanttView.xaml;Source\View\MainView.xaml;Source\View\PrioritaetAendern.xaml;Source\View\TodosView.xaml;
+
+True
+

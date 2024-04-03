@@ -1,0 +1,251 @@
+﻿<UserControl x:Class="wpfIssues.View.BacklogView"         
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:view="clr-namespace:wpfIssues.View"
+             xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
+             xmlns:model="clr-namespace:wpfIssues.Model"
+             xmlns:converter="clr-namespace:wpfIssues.Converter"
+             xmlns:sys="clr-namespace:System;assembly=mscorlib"
+             xmlns:syncfusion1="clr-namespace:Syncfusion.UI.Xaml.Grid;assembly=Syncfusion.SfGrid.WPF"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800" PreviewKeyDown="OnUserControl_PreviewKeyDown"
+             DataContext="{Binding BacklogViewModel, Source={StaticResource ViewModelLocator}}">
+
+    <UserControl.Resources>
+        <converter:MitarbeiterIdToNameMultiConverter x:Key="MitarbeiterIdToNameMultiConverter" />
+        <converter:CreatorIdToShortNameMultiConverter x:Key="CreatorIdToShortNameMultiConverter" />
+        <converter:TypToBackgroundColorConverter x:Key="TypToBackgroundColorConverter" />
+        <converter:CreatorIdToNameMultiConverter x:Key="CreatorIdToNameMultiConverter" />
+        <converter:EnumTypToStringConverter x:Key="TypToStringConverter" />
+        <converter:EnumTypToIntConverter x:Key="EnumTypToIntConverter" />
+        <converter:DeadlineToBackgroundColorConverter x:Key="DeadlineToBackgroundColorConverter" />
+        <converter:TruncateTextConverter x:Key="TruncateTextConverter"/>
+        <converter:HighlightDeadlineConvert x:Key="highlightDeadlineConvert"/>
+        <ObjectDataProvider x:Key="enumValues" MethodName="GetValues" ObjectType="{x:Type sys:Enum}">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="model:enumTyp" />
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
+    </UserControl.Resources>
+    <Grid>
+        <Grid.Resources>
+            <ResourceDictionary>
+                <converter:RowStyleMultiConverter x:Key="rowStyleMultiConverter" />
+                <Style x:Key="rowStyle" TargetType="syncfusion1:VirtualizingCellsControl">
+                    <Setter Property="Background">
+                        <Setter.Value>
+                            <MultiBinding Converter="{StaticResource rowStyleMultiConverter}" Mode="TwoWay" UpdateSourceTrigger="PropertyChanged">
+                                <Binding Path="sortOrder"/>
+                                <Binding Path="ende"/>
+                                <Binding Path="deadline"/>
+                                <Binding Path="status"/>
+                            </MultiBinding>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </ResourceDictionary>
+        </Grid.Resources>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="35"></RowDefinition>
+            <RowDefinition ></RowDefinition>
+        </Grid.RowDefinitions>
+        <Grid Grid.Row="0" HorizontalAlignment="Left">
+            <StackPanel Orientation="Horizontal" Width="auto">
+                <TextBox x:Name="tbSearchBox" Width="150" Height="25" TextChanged="OnSearchBox_TextChanged" KeyDown="OnSearchBox_KeyDown" Margin="5,0" HorizontalAlignment="Left" />
+                <ComboBox x:Name="cmbxSelectedMitarbeier" 
+                            Height="25"
+                            MinWidth="200"
+                            Grid.Column="1"
+                            ItemsSource="{Binding backlogMitarbeiters}"
+                            HorizontalAlignment="Right"
+                            DisplayMemberPath="name"
+                            SelectedValuePath="id"
+                            Margin="5,0" Width="200" SelectedIndex="0"/>
+                <Button Content="X" Width="20" Height="25" Click="ClearSearchAndResetDropdown" Margin="5,0" ToolTip="Clear Search and Reset"/>
+                <syncfusion:SfBusyIndicator Grid.Row="1" Foreground="Black" Background="White" IsBusy="{Binding  jxIssuesDataService.IsLoading}" ViewboxWidth="20" ViewboxHeight="20">
+                </syncfusion:SfBusyIndicator>
+            </StackPanel>
+        </Grid>
+        <syncfusion1:SfDataGrid x:Name="dgBacklog" Grid.Row="1"
+                                ItemsSource="{Binding backlogTasks, Mode=TwoWay}"
+                                RowStyle="{StaticResource rowStyle}"
+                                SelectionMode="Extended"
+                                AllowSorting="False"
+                                AllowDrop="True"
+                                AllowDraggingRows="True"
+                                NavigationMode="Cell"
+                                RowDropIndicatorMode="Line"
+                                ShowRowHeader="True" 
+                                AutoGenerateColumns ="False" 
+                                CellDoubleTapped="OnDgBacklogCell_DoubleClick" 
+                                ColumnSizer="Star"
+                                AllowResizingColumns="True"
+                                RowHeaderWidth="0"
+                                AllowEditing="True"
+                                CurrentCellBeginEdit="OnDgBacklog_CurrentCellBeginEdit">
+
+            <!--FollowUp 2024-03-28 => If change the current backlog view's sorting logic from index to builin columns
+            sorting feature (SortColumnDescriptions) then we can use this logic and only update the change issues
+            and improve the performance-->
+            <!--<syncfusion:SfDataGrid.SortColumnDescriptions>
+                <syncfusion:SortColumnDescription ColumnName="sortOrder" SortDirection="Ascending" />
+            </syncfusion:SfDataGrid.SortColumnDescriptions>-->
+
+
+            <syncfusion:SfDataGrid.Columns>
+                <!--Prio-->
+                <syncfusion:GridNumericColumn MappingName="sortOrder" HeaderText="Prio" NumberDecimalDigits="0" AllowEditing="False" TextAlignment="Center" Width="40"/>
+                <!--Typ-->
+                <syncfusion:GridTemplateColumn HeaderText="Typ" AllowEditing="True" Width="50">
+                    <syncfusion:GridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Border Background="{Binding Path=typ, Converter={StaticResource TypToBackgroundColorConverter}}" >
+                                <TextBlock HorizontalAlignment="Center"
+                                       Text="{Binding Path=typ, Mode=TwoWay, Converter={StaticResource TypToStringConverter}}" VerticalAlignment="Center">
+                                </TextBlock>
+                            </Border>
+                        </DataTemplate>
+                    </syncfusion:GridTemplateColumn.CellTemplate>
+                    <syncfusion:GridTemplateColumn.EditTemplate>
+                        <DataTemplate>
+                            <ComboBox ItemsSource="{Binding Source={StaticResource enumValues}}"
+                                  SelectedValue="{Binding typ, Mode=TwoWay}"
+                                  HorizontalContentAlignment="Center"/>
+                        </DataTemplate>
+                    </syncfusion:GridTemplateColumn.EditTemplate>
+                </syncfusion:GridTemplateColumn>
+                <!--Titel-->
+                <syncfusion:GridTextColumn MappingName="titelLong" HeaderText="Titel" AllowEditing="False" ShowToolTip="True" MinimumWidth="500"/>
+                <!--Ersteller-->
+                <syncfusion:GridTemplateColumn HeaderText="Ersteller"  Width="55">
+                    <syncfusion:GridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Border>
+                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <TextBlock.Text>
+                                        <MultiBinding Converter="{StaticResource CreatorIdToShortNameMultiConverter}">
+                                            <Binding Path="creator_id" />
+                                            <Binding Path="DataContext.backlogMitarbeiters" RelativeSource="{RelativeSource FindAncestor, AncestorType={x:Type UserControl}}" />
+                                        </MultiBinding>
+                                    </TextBlock.Text>
+                                </TextBlock>
+                            </Border>
+                        </DataTemplate>
+                    </syncfusion:GridTemplateColumn.CellTemplate>
+                </syncfusion:GridTemplateColumn>
+                <!--PrioPunkte-->
+                <syncfusion:GridTextColumn MappingName="prioPunkte" HeaderText="PrioPunkte" AllowEditing="False" TextAlignment="Center" Width="71" />
+                <!--Mitarbeiter-->
+                <syncfusion:GridTemplateColumn HeaderText="Mitarbeiter" Width="72">
+                    <syncfusion:GridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <TextBlock.Text>
+                                    <MultiBinding Converter="{StaticResource CreatorIdToShortNameMultiConverter}">
+                                        <Binding Path="mitarbeiter_id" />
+                                        <Binding Path="DataContext.backlogMitarbeiters" RelativeSource="{RelativeSource FindAncestor, AncestorType={x:Type UserControl}}" />
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </DataTemplate>
+                    </syncfusion:GridTemplateColumn.CellTemplate>
+                    <syncfusion:GridTemplateColumn.EditTemplate>
+                        <DataTemplate>
+                            <Border Background="{Binding deadline, Converter={StaticResource DeadlineToBackgroundColorConverter}}">
+                                <ComboBox ItemsSource="{Binding Path=DataContext.backlogMitarbeiters, RelativeSource={RelativeSource FindAncestor, AncestorType=UserControl}}"
+                                  DisplayMemberPath="name"
+                                  SelectedValuePath="id"
+                                  SelectedValue="{Binding mitarbeiter_id, Mode=TwoWay}"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"
+                                  HorizontalContentAlignment="Left"
+                                  VerticalContentAlignment="Center" 
+                                  MinWidth="100"/>
+                            </Border>
+                        </DataTemplate>
+                    </syncfusion:GridTemplateColumn.EditTemplate>
+                </syncfusion:GridTemplateColumn>
+                <!--Von-->
+                <syncfusion:GridDateTimeColumn DisplayBinding="{Binding Path=created_at, StringFormat=d}" AllowEditing="False" HeaderText="Von" TextAlignment="Center" Width="70" />
+                <!--Schätzung-->
+                <syncfusion:GridTextColumn MappingName="schaetzung" HeaderText="Schätz. I" TextAlignment="Center" Width="68"/>
+                <syncfusion:GridTextColumn MappingName="schaetzungOffiziell" HeaderText="Schätz. E" TextAlignment="Center" Width="68"/>
+                <!--Deadline-->
+                <syncfusion:GridTemplateColumn MappingName="deadline" HeaderText="Deadline" Width="65" >
+                    <syncfusion:GridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Border>
+                                <Border.Background>
+                                    <MultiBinding Converter="{StaticResource highlightDeadlineConvert}">
+                                        <Binding Path="sortOrder"/>
+                                        <Binding Path="ende"/>
+                                        <Binding Path="deadline"/>
+                                        <Binding Path="status"/>
+                                    </MultiBinding>
+                                </Border.Background>
+                                <TextBlock Text="{Binding deadline, StringFormat=dd.MM.yyyy}" TextAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                        </DataTemplate>
+                    </syncfusion:GridTemplateColumn.CellTemplate>
+                    <syncfusion:GridTemplateColumn.EditTemplate>
+                        <DataTemplate>
+                            <syncfusion:DateTimeEdit DateTime="{Binding deadline, Mode=TwoWay}"
+                                                     IsEmptyDateEnabled="True"
+                                                     NullValue="{x:Null}"
+                                                     NoneDateText="NULL"
+                                                     ShowMaskOnNullValue="True"/>
+                        </DataTemplate>
+                    </syncfusion:GridTemplateColumn.EditTemplate>
+                </syncfusion:GridTemplateColumn>
+                <!--Start-->
+                <syncfusion:GridTemplateColumn MappingName="start" HeaderText="Start" Width="60" UpdateTrigger="LostFocus">
+                    <syncfusion:GridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding start, StringFormat=dd.MM.yyyy}" TextAlignment="Center" VerticalAlignment="Center"/>
+                        </DataTemplate>
+                    </syncfusion:GridTemplateColumn.CellTemplate>
+                    <syncfusion:GridTemplateColumn.EditTemplate>
+                        <DataTemplate>
+                            <syncfusion:DateTimeEdit DateTime="{Binding start, Mode=TwoWay}"
+                                                     IsEmptyDateEnabled="True"
+                                                     NullValue="{x:Null}"
+                                                     NoneDateText="NULL"
+                                                     ShowMaskOnNullValue="True"/>
+                        </DataTemplate>
+                    </syncfusion:GridTemplateColumn.EditTemplate>
+                </syncfusion:GridTemplateColumn>
+                <!--Ende-->
+                <syncfusion:GridDateTimeColumn DisplayBinding="{Binding Path=ende,     StringFormat=d}" HeaderText="Ende" AllowEditing="False" TextAlignment="Center" Width="60"/>
+                <!--Aktenzah-->
+                <syncfusion:GridTextColumn MappingName="aktenzahl" HeaderText="Aktenzahl" AllowEditing="true" TextAlignment="Center" Width="65" />
+                <!--Kunde-->
+                <syncfusion:GridTextColumn MappingName="kunde"     HeaderText="Kunde"     AllowEditing="true" TextAlignment="Center" Width="65" />
+                <!--Anmerkung-->
+                <syncfusion:GridTextColumn MappingName="anmerkung"     HeaderText="Anmerkung"     AllowEditing="true" TextAlignment="Center" Width="80" />
+            </syncfusion:SfDataGrid.Columns>
+            <syncfusion:SfDataGrid.RecordContextMenu>
+
+                <ContextMenu Loaded="OnContextMenu_Loaded">
+                    <MenuItem Header="Status" x:Name="miStatus">
+                        <MenuItem x:Name="miStatusOffen"                Header="Offen"          Click="OnContextMenuMenuItem_Click"/>
+                        <MenuItem x:Name="miStatusTest"                 Header="Im Test"        Click="OnContextMenuMenuItem_Click"/>
+                        <MenuItem x:Name="miStatusBearbeitung"          Header="In Bearbeitung" Click="OnContextMenuMenuItem_Click"/>
+                        <MenuItem x:Name="miStatusOffenKlaerungsbedarf" Header="Klärungsbedarf" Click="OnContextMenuMenuItem_Click"/>
+                    </MenuItem>
+                    <MenuItem Header="Priorität ändern" Click="OnContextMenuMenuItem_Click"/>
+                    <MenuItem Header="In Zwischenablage kopieren" Click="OnContextMenuMenuItem_Click"/>
+                    <MenuItem Header="PrioPunkte" x:Name="miPrioPunkte">
+                        <MenuItem Header="Oben"  Click="OnPrioPunkteList_Click"/>
+                        <MenuItem Header="Unten" Click="OnPrioPunkteList_Click"/>
+                    </MenuItem>
+                    <Separator />
+                    <MenuItem Header="Daten Refreshen"            Click="OnContextMenuMenuItem_Click" />
+                </ContextMenu>
+
+            </syncfusion:SfDataGrid.RecordContextMenu>
+        </syncfusion1:SfDataGrid>
+    </Grid>
+
+</UserControl>

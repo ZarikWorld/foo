@@ -1,0 +1,254 @@
+﻿<UserControl x:Class="wpfIssues.View.TodosView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:converter="clr-namespace:wpfIssues.Converter" xmlns:Notification="clr-namespace:Syncfusion.Windows.Controls.Notification;assembly=Syncfusion.SfBusyIndicator.WPF"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800"
+             DataContext="{Binding TodosViewModel, Source={StaticResource ViewModelLocator}}">
+
+    <UserControl.Resources>
+        <!-- Converters -->
+        <converter:MitarbeiterIdToNameMultiConverter x:Key="MitarbeiterIdToNameMultiConverter" />
+        <converter:DateConverter x:Key="DateConverter"/>
+        <converter:TodoRowStyleMultiConverter x:Key="rowStyleMultiConverter"/>
+        <converter:RoleToVisibilityConverter x:Key="RoleToVisibilityConverter"/>
+        <converter:UserRoleConverter x:Key="roleConverter"/>
+        <converter:SchatzungCombinedConverter x:Key="SchatzungCombinedConverter" />
+        <converter:PrefixConverter x:Key="PrefixConverter"/>
+        <!-- ContextMenu Status -->
+        <Style x:Key="HideWhenOpened" TargetType="MenuItem">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding status}" Value="opened">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="HideWhenImTest" TargetType="MenuItem">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding status}" Value="imTest">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="HideWhenInBearbeitung" TargetType="MenuItem">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding status}" Value="inBearbeitung">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="HideWhenKlaerungsbedarf" TargetType="MenuItem">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding status}" Value="klaerungsbedarf">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <!-- Border Style -->
+        <Style x:Key="borderStyle" TargetType="Border">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding status}" Value="imTest">
+                    <Setter Property="Background" Value="Green" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding status}" Value="inBearbeitung">
+                    <Setter Property="Background" Value="LightBlue" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding status}" Value="klaerungsbedarf">
+                    <Setter Property="Background" Value="Gray" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <SolidColorBrush x:Key="LightTextColor" Color="White"/>
+        <SolidColorBrush x:Key="DarkTextColor" Color="Black"/>
+        <Style x:Key="DynamicLabelColorStyle" TargetType="{x:Type Label}">
+            <Setter Property="Foreground" Value="{StaticResource DarkTextColor}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding status}" Value="imTest">
+                    <Setter Property="Foreground" Value="{StaticResource DarkTextColor}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding status}" Value="inBearbeitung">
+                    <Setter Property="Foreground" Value="{StaticResource DarkTextColor}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding status}" Value="klaerungsbedarf">
+                    <Setter Property="Foreground" Value="{StaticResource DarkTextColor}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="BoldMidnightBlueLabelStyle" TargetType="Label">
+            <Setter Property="Foreground" Value="MidnightBlue"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+        </Style>
+
+    </UserControl.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition />
+        </Grid.RowDefinitions>
+        <Grid Grid.Row="0" >
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition />
+                <ColumnDefinition />
+            </Grid.ColumnDefinitions>
+            <CheckBox x:Name="cbxNotImTestTodos"  
+                        Grid.Column="0"
+                        Content="imTest nicht anzeigen"
+                        IsChecked="{Binding HideImTestTodos}" />
+
+            <StackPanel Orientation="Horizontal" Grid.Column="1" HorizontalAlignment="Right">
+                <Notification:SfBusyIndicator Grid.Row="1" Foreground="Black" Background="White" IsBusy="{Binding  jxIssuesDataService.IsLoading}" ViewboxWidth="20" ViewboxHeight="20" />
+
+                <!--Grid.Column="1"-->
+                    <ComboBox x:Name="cmbxTeammates" 
+                            MinWidth="200"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                            Margin="10,10,10,5"
+                            SelectionChanged="OnCmbxTeammates_SelectionChanged"
+                            Visibility="{Binding Path=jxIssuesDataService.currentUser, Converter={StaticResource roleConverter}}"/>
+
+            </StackPanel>
+            
+            
+        </Grid>
+        <ListView x:Name="lvTodos" Grid.Row="1" ItemsSource="{Binding todosTasks, Mode=TwoWay}" SelectionMode="Single">
+            <ListView.ItemContainerStyle>
+                <Style TargetType="ListViewItem">
+                    <EventSetter Event="MouseDoubleClick" Handler="OnLvTodos_DoubleClick"/>
+                    <Setter Property="ContextMenu">
+                        <Setter.Value>
+                            <ContextMenu>
+                                <MenuItem x:Name="miStatus" Header="Status">
+                                    <MenuItem Header="Offen"                      Click="OnMenuItem_Click" Style="{StaticResource HideWhenOpened}" />
+                                    <MenuItem Header="Im Test"                    Click="OnMenuItem_Click" Style="{StaticResource HideWhenImTest}" />
+                                    <MenuItem Header="In Bearbeitung"             Click="OnMenuItem_Click" Style="{StaticResource HideWhenInBearbeitung}"/>
+                                    <MenuItem Header="Klärungsbedarf"             Click="OnMenuItem_Click" Style="{StaticResource HideWhenKlaerungsbedarf}"/>
+                                </MenuItem>
+                                <MenuItem Header="Priorität ändern" Click="OnMenuItem_Click"/>
+                                <MenuItem Header="In Zwischenablage kopieren" Click="OnMenuItem_Click"/>
+                                <MenuItem Header="PrioPunkte" x:Name="miPrioPunkte">
+                                    <MenuItem Header="Oben"  Click="MovePrioPunkteObenUnten"/>
+                                    <MenuItem Header="Unten" Click="MovePrioPunkteObenUnten"/>
+                                </MenuItem>
+                                <Separator />
+                                <MenuItem Header="Daten Refreshen"                Click="OnMenuItem_Click" />
+                            </ContextMenu>
+                        </Setter.Value>
+                    </Setter>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="ListViewItem">
+                                    <ContentPresenter />
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                    <Style.Resources>
+                        <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="Transparent"/>
+                        <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="Black"/>
+                        <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}" Color="Transparent"/>
+                    </Style.Resources>
+                </Style>
+            </ListView.ItemContainerStyle>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Border  BorderBrush="Gray" BorderThickness="1" CornerRadius="10" Margin="0,5,0,5" Padding="10">
+                        <Border.Background>
+                            <MultiBinding Converter="{StaticResource rowStyleMultiConverter}">
+                                <Binding Path="sortOrder"/>
+                                <Binding Path="ende"/>
+                                <Binding Path="deadline"/>
+                                <Binding Path="status"/>
+                            </MultiBinding>
+                        </Border.Background>
+                        <Grid Tag="{Binding}">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <!--titele-->
+                            <TextBlock Foreground="MidnightBlue" FontSize="20" Padding="0,10,0,10">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{}[{0}] {1}">
+                                        <Binding Path="iid" />
+                                        <Binding Path="title" />
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                            <Grid Grid.Row="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <!--id and created_at-->
+                                <Grid Grid.Column="0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <Label Grid.Column="0" Content="{Binding Path=sortOrder, Converter={StaticResource PrefixConverter}, ConverterParameter='#'}" Style="{StaticResource BoldMidnightBlueLabelStyle}"/>
+
+                                    <Label Grid.Column="2" Content="erstellt am"                                                Style="{StaticResource DynamicLabelColorStyle}"/>
+                                    <Label Grid.Column="3" Content="{Binding created_at, Converter={StaticResource DateConverter}}" Style="{StaticResource BoldMidnightBlueLabelStyle}"/>
+                                    <Label Grid.Column="4" Content="von"                                                          Style="{StaticResource DynamicLabelColorStyle}" />
+                                    <Label Grid.Column="5" Content="{Binding ersteller_name}"                                       Style="{StaticResource BoldMidnightBlueLabelStyle}"/>
+                                </Grid>
+                                <Grid Grid.Column="1">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <!--prioPunkte-->
+                                    <Grid Grid.Column="0">
+                                        <StackPanel Grid.Column="0" HorizontalAlignment="Stretch" Orientation="Horizontal">
+                                            <Label Content="PrioPunkte"         Style="{StaticResource DynamicLabelColorStyle}"/>
+                                            <Label Content="{Binding prioPunkte}"/>
+                                        </StackPanel>
+                                    </Grid>
+                                    <!--schätzung-->
+                                    <Grid Grid.Column="1">
+                                        <StackPanel Grid.Column="1" HorizontalAlignment="Stretch" Orientation="Horizontal">
+                                            <Label Content="Schätzung" Style="{StaticResource DynamicLabelColorStyle}" />
+                                            <Label>
+                                                <Label.Content>
+                                                    <MultiBinding Converter="{StaticResource SchatzungCombinedConverter}">
+                                                        <Binding Path="schaetzung" />
+                                                        <Binding Path="schaetzungOffiziell" />
+                                                    </MultiBinding>
+                                                </Label.Content>
+                                            </Label>
+                                        </StackPanel>
+                                    </Grid>
+                                    <!--start-->
+                                    <Grid Grid.Column="2">
+                                        <StackPanel Grid.Column="2" HorizontalAlignment="Stretch" Orientation="Horizontal">
+                                            <Label Content="Start" Style="{StaticResource DynamicLabelColorStyle}" />
+                                            <Label Content="{Binding start, Converter={StaticResource DateConverter}}"/>
+                                        </StackPanel>
+                                    </Grid>
+                                    <!--deadline-->
+                                    <Grid Grid.Column="3">
+                                        <StackPanel Grid.Column="3" Orientation="Horizontal">
+                                            <Label x:Name="deadlineLabel" Content="Deadline" Style="{StaticResource DynamicLabelColorStyle}"  />
+                                            <Label Content="{Binding deadline, Converter={StaticResource DateConverter}}"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Grid>
+                            </Grid>
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ListView>
+    </Grid>
+</UserControl>
